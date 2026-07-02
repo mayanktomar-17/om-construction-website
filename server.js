@@ -1,5 +1,5 @@
 const express = require("express");
-const nodemailer = require("nodemailer");
+const brevo = require("@getbrevo/brevo");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -85,48 +85,41 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: "Please enter a valid email address." });
     }
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error("Missing EMAIL_USER or EMAIL_PASS in .env");
-      return res.status(500).json({ success: false, message: "Email service is not configured." });
-    }
+    if (!process.env.EMAIL_USER || !process.env.BREVO_API_KEY) {
+  console.error("Missing EMAIL_USER or BREVO_API_KEY in .env");
+  return res.status(500).json({ success: false, message: "Email service is not configured." });
+} 
 
-   const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000
-});transporter.verify((error, success) => {
-  if (error) {
-    console.error("SMTP VERIFY ERROR:", error);
-  } else {
-    console.log("SMTP READY");
-  }
-});
+   const brevo = require("@getbrevo/brevo");
+
+const apiInstance = new brevo.TransactionalEmailsApi();
+
+apiInstance.setApiKey(
+  brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
     const toEmail = process.env.CLIENT_EMAIL || process.env.EMAIL_USER;
     const inquiry = { name, phone, email, subject, message };
 
-    await transporter.sendMail({
-      from: `"OM Construction Website" <${process.env.EMAIL_USER}>`,
-      to: toEmail,
-      replyTo: email,
-      subject: `🚀 New Inquiry from OM Construction Website - ${subject}`,
-      html: buildInquiryEmail(inquiry)
-    });
-
-    await transporter.sendMail({
-      from: `"OM Construction" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Thank you for contacting OM Construction",
-      html: buildAutoReply({ name })
-    });
-
+   await apiInstance.sendTransacEmail({
+  sender: {
+    name: "OM Construction Website",
+    email: process.env.EMAIL_USER
+  },
+  to: [{ email: toEmail }],
+  replyTo: { email: email },
+  subject: `New Inquiry from OM Construction Website - ${subject}`,
+  htmlContent: buildInquiryEmail(inquiry)
+});
+   await apiInstance.sendTransacEmail({
+  sender: {
+    name: "OM Construction",
+    email: process.env.EMAIL_USER
+  },
+  to: [{ email: email }],
+  subject: "Thank you for contacting OM Construction",
+  htmlContent: buildAutoReply({ name })
+});
     console.log("Mail sent:", { name, phone, email, subject });
     return res.json({ success: true, message: "Inquiry sent successfully. We will contact you soon." });
   } catch (error) {
