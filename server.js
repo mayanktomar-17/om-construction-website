@@ -90,14 +90,19 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
       return res.status(500).json({ success: false, message: "Email service is not configured." });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
+   const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000
+});
     const toEmail = process.env.CLIENT_EMAIL || process.env.EMAIL_USER;
     const inquiry = { name, phone, email, subject, message };
 
