@@ -102,6 +102,12 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
   connectionTimeout: 30000,
   greetingTimeout: 30000,
   socketTimeout: 30000
+});transporter.verify((error, success) => {
+  if (error) {
+    console.error("SMTP VERIFY ERROR:", error);
+  } else {
+    console.log("SMTP READY");
+  }
 });
     const toEmail = process.env.CLIENT_EMAIL || process.env.EMAIL_USER;
     const inquiry = { name, phone, email, subject, message };
